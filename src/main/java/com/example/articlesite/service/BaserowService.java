@@ -1,5 +1,7 @@
 package com.example.articlesite.service;
 
+import org.springframework.beans.factory.annotation.Value;
+
 import com.example.articlesite.dto.ArticleDto;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -11,7 +13,6 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.time.Instant;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -29,42 +30,74 @@ public class BaserowService {
         this.httpClient = httpClient;
     }
 
-    public List<ArticleDto> getAllArticles() throws IOException {
-        List<ArticleDto> articles = new ArrayList<>();
+    public List<ArticleDto> getAllArticles() {
+        System.out.println("\n=== STARTING BASEROW SERVICE ===");
+        System.out.println("[CONFIG] API URL: " + (baserowApiUrl != null ? baserowApiUrl : "NOT SET"));
+        System.out.println("[CONFIG] Token: " + (baserowToken != null ? "***" + baserowToken.substring(baserowToken.length() - 4) : "NOT SET"));
 
+        if (baserowApiUrl == null || baserowToken == null) {
+            System.err.println("[ERROR] Required configuration is missing!");
+            return List.of();
+        }
+
+        List<ArticleDto> articles = new ArrayList<>();
         Request request = new Request.Builder()
                 .url(baserowApiUrl)
                 .header("Authorization", "Token " + baserowToken)
-                .get()
                 .build();
 
+        System.out.println("[REQUEST] Sending to: " + request.url());
+        System.out.println("[REQUEST] Headers: " + request.headers());
+
         try (Response response = httpClient.newCall(request).execute()) {
-            if (response.isSuccessful() && response.body() != null) {
-                String responseBody = response.body().string();
-                System.out.println("Raw response from Baserow:\n" + responseBody); // Логирование сырого ответа
+            System.out.println("[RESPONSE] Code: " + response.code());
+            System.out.println("[RESPONSE] Message: " + response.message());
 
-                // Парсим JSON ответ
-                JSONObject jsonResponse = new JSONObject(responseBody);
-                JSONArray results = jsonResponse.getJSONArray("results");
-
-                for (int i = 0; i < results.length(); i++) {
-                    JSONObject jsonObject = results.getJSONObject(i);
-                    ArticleDto article = new ArticleDto();
-
-                    // Устанавливаем поля из JSON
-                    article.setId(jsonObject.getLong("id"));
-                    article.setContent(jsonObject.getString("content"));
-                    article.setImageUrl(jsonObject.getString("image_url"));
-
-                    // Парсим дату
-                    String dateStr = jsonObject.getString("date_created");
-                    Instant dateCreated = Instant.parse(dateStr);
-                    article.setDateCreated(dateCreated);
-
-                    articles.add(article);
+            if (!response.isSuccessful()) {
+                System.err.println("[ERROR] Request failed with code: " + response.code());
+                if (response.body() != null) {
+                    System.err.println("[ERROR] Error body: " + response.body().string());
                 }
+                return List.of();
             }
+
+            if (response.body() == null) {
+                System.err.println("[ERROR] Empty response body");
+                return List.of();
+            }
+
+            String responseBody = response.body().string();
+            System.out.println("[RESPONSE] Body length: " + responseBody.length());
+            System.out.println("[RESPONSE] First 200 chars: " + responseBody.substring(0, Math.min(200, responseBody.length())));
+
+            JSONObject jsonResponse = new JSONObject(responseBody);
+            JSONArray results = jsonResponse.getJSONArray("results");
+            System.out.println("[DATA] Found " + results.length() + " articles");
+
+            for (int i = 0; i < results.length(); i++) {
+                JSONObject jsonObject = results.getJSONObject(i);
+                ArticleDto article = new ArticleDto();
+
+                article.setId(jsonObject.getLong("id"));
+                article.setContent(jsonObject.getString("content"));
+                article.setImageUrl(jsonObject.getString("image_url"));
+
+                String dateStr = jsonObject.getString("date_created");
+                article.setDateCreated(Instant.parse(dateStr));
+
+                articles.add(article);
+                System.out.println("[DATA] Added article ID: " + article.getId() +
+                        ", Content length: " + article.getContent().length());
+            }
+
+            return articles;
+        } catch (Exception e) {
+            System.err.println("[CRITICAL] Exception in BaserowService:");
+            e.printStackTrace();
+            return List.of();
+        } finally {
+            System.out.println("=== BASEROW SERVICE FINISHED ===");
+            System.out.println("Total articles fetched: " + articles.size() + "\n");
         }
-        return articles;
     }
 }
