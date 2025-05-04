@@ -3,16 +3,13 @@ package com.example.articlesite.controller;
 import com.example.articlesite.dto.ArticleDto;
 import com.example.articlesite.service.BaserowService;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/articles")
+@CrossOrigin(origins = "*") // Добавляем CORS поддержку
 public class ArticleController {
     private final BaserowService baserowService;
 
@@ -21,12 +18,17 @@ public class ArticleController {
     }
 
     @GetMapping
-    public List<ArticleDto> getAllArticles() throws IOException {
-        return baserowService.getAllArticles();
+    public ResponseEntity<?> getAllArticles() {
+        return ResponseEntity.ok(baserowService.getAllArticles());
     }
-    @GetMapping("/articles/{id}")
-    public ResponseEntity<ArticleDto> getArticleById(@PathVariable Long id) throws IOException {
-        ArticleDto article = baserowService.getArticleById(id);
-        return ResponseEntity.ok(article);
+
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getArticleById(@PathVariable Long id) {
+        try {
+            ArticleDto article = baserowService.getArticleById(id);
+            return ResponseEntity.ok(article);
+        } catch (IOException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 }
