@@ -100,4 +100,44 @@ public class BaserowService {
             System.out.println("Total articles fetched: " + articles.size() + "\n");
         }
     }
+
+    public ArticleDto getArticleById(Long id) throws IOException {
+        // Формируем URL для запроса конкретной статьи
+        String apiUrl = baserowApiUrl.replaceAll("\\?.*$", "") + id + "/?user_field_names=true";
+        System.out.println("[DEBUG] Fetching article from URL: " + apiUrl);
+
+        Request request = new Request.Builder()
+                .url(apiUrl)
+                .header("Authorization", "Token " + baserowToken)
+                .build();
+
+        try (Response response = httpClient.newCall(request).execute()) {
+            System.out.println("[DEBUG] Response code: " + response.code());
+
+            if (!response.isSuccessful()) {
+                throw new IOException("Failed to fetch article. HTTP code: " + response.code());
+            }
+
+            if (response.body() == null) {
+                throw new IOException("Empty response body");
+            }
+
+            String responseBody = response.body().string();
+            System.out.println("[DEBUG] Response body: " + responseBody);
+
+            JSONObject jsonObject = new JSONObject(responseBody);
+
+            ArticleDto article = new ArticleDto();
+            article.setId(jsonObject.getLong("id"));
+            article.setContent(jsonObject.getString("content"));
+            article.setImageUrl(jsonObject.getString("image_url"));
+            article.setDateCreated(Instant.parse(jsonObject.getString("date_created")));
+
+            return article;
+        } catch (Exception e) {
+            System.err.println("[ERROR] Error fetching article with ID " + id);
+            e.printStackTrace();
+            throw e;
+        }
+    }
 }
