@@ -6,7 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/articles")
+@RequestMapping("/articles")
 @CrossOrigin(origins = {"https://mirai-tech.ru", "https://zen.yandex.ru"})
 public class ArticleController {
     private final BaserowService baserowService;
