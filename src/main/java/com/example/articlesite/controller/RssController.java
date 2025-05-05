@@ -4,17 +4,13 @@ import com.example.articlesite.dto.ArticleDto;
 import com.example.articlesite.service.BaserowService;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @RestController
-@RequestMapping(value = "/rss", produces = MediaType.APPLICATION_XML_VALUE)
-@CrossOrigin(origins = {"https://mirai-tech.ru", "https://zen.yandex.ru"})
 public class RssController {
 
     private final BaserowService baserowService;
@@ -24,7 +20,7 @@ public class RssController {
         this.baserowService = baserowService;
     }
 
-    @GetMapping
+    @GetMapping(value = "/rss", produces = MediaType.APPLICATION_XML_VALUE)
     public ResponseEntity<String> getRssFeed() {
         try {
             List<ArticleDto> articles = baserowService.getAllArticles();
