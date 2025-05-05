@@ -12,6 +12,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @RestController
+@RequestMapping("/api") // Добавьте базовый путь
 public class RssController {
 
     private final BaserowService baserowService;
@@ -25,13 +26,22 @@ public class RssController {
     public ResponseEntity<String> getRssFeed() {
         try {
             List<ArticleDto> articles = baserowService.getAllArticles();
+            System.out.println("Получено статей: " + articles.size());
+
+            if (articles == null || articles.isEmpty()) {
+                return ResponseEntity.ok()
+                        .body(generateEmptyRss());
+            }
+
             String rssFeed = generateRss(articles);
             return ResponseEntity.ok()
                     .header("Access-Control-Allow-Origin", "https://mirai-tech.ru")
                     .header("Access-Control-Allow-Methods", "GET")
                     .body(rssFeed);
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body("Error generating RSS feed");
+            e.printStackTrace();
+            return ResponseEntity.internalServerError()
+                    .body("Error generating RSS feed: " + e.getMessage());
         }
     }
 
@@ -47,18 +57,33 @@ public class RssController {
                 .append("    <atom:link href=\"https://mirai-tech.ru/api/rss\" rel=\"self\" type=\"application/rss+xml\" />\n");
 
         articles.forEach(article -> {
-            rssBuilder.append("    <item>\n")
-                    .append("      <title>").append(escapeXml(article.getTitle())).append("</title>\n")
-                    .append("      <link>https://mirai-tech.ru/article/").append(article.getId()).append("</link>\n")
-                    .append("      <description>").append(escapeXml(article.getContent())).append("</description>\n")
-                    .append("      <pubDate>").append(RSS_DATE_FORMAT.format(article.getDateCreated())).append("</pubDate>\n")
-                    .append("      <guid isPermaLink=\"true\">https://mirai-tech.ru/article/").append(article.getId()).append("</guid>\n");
+            if (article != null) {
+                rssBuilder.append("    <item>\n")
+                        .append("      <title>")
+                        .append(escapeXml(article.getTitle() != null ? article.getTitle() : "Без названия"))
+                        .append("</title>\n")
+                        .append("      <link>https://mirai-tech.ru/article/")
+                        .append(article.getId() != null ? article.getId() : "")
+                        .append("</link>\n")
+                        .append("      <description>")
+                        .append(escapeXml(article.getContent() != null ? article.getContent() : ""))
+                        .append("</description>\n")
+                        .append("      <pubDate>")
+                        .append(article.getDateCreated() != null ?
+                                RSS_DATE_FORMAT.format(article.getDateCreated()) : "")
+                        .append("</pubDate>\n")
+                        .append("      <guid isPermaLink=\"true\">https://mirai-tech.ru/article/")
+                        .append(article.getId() != null ? article.getId() : "")
+                        .append("</guid>\n");
 
-            if (article.getImageUrl() != null && !article.getImageUrl().isEmpty()) {
-                rssBuilder.append("      <enclosure url=\"").append(article.getImageUrl()).append("\" length=\"0\" type=\"image/jpeg\" />\n");
+                if (article.getImageUrl() != null && !article.getImageUrl().isEmpty()) {
+                    rssBuilder.append("      <enclosure url=\"")
+                            .append(article.getImageUrl())
+                            .append("\" length=\"0\" type=\"image/jpeg\" />\n");
+                }
+
+                rssBuilder.append("    </item>\n");
             }
-
-            rssBuilder.append("    </item>\n");
         });
 
         rssBuilder.append("  </channel>\n")
@@ -67,12 +92,23 @@ public class RssController {
         return rssBuilder.toString();
     }
 
+    private String generateEmptyRss() {
+        return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+                "<rss version=\"2.0\">\n" +
+                "  <channel>\n" +
+                "    <title>MirAI Tech Articles</title>\n" +
+                "    <description>No articles available</description>\n" +
+                "  </channel>\n" +
+                "</rss>";
+    }
+
     private String escapeXml(String input) {
         if (input == null) return "";
         return input.replace("&", "&amp;")
                 .replace("<", "&lt;")
                 .replace(">", "&gt;")
                 .replace("\"", "&quot;")
-                .replace("'", "&apos;");
+                .replace("'", "&apos;")
+                .replace("\n", " ");
     }
 }
