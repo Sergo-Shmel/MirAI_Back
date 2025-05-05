@@ -7,6 +7,7 @@ import java.time.Instant;
 public class ArticleDto {
     private Long id;
     private String content;
+    private String title; // Добавлено новое поле
     private String imageUrl;
     private Instant dateCreated;
 }

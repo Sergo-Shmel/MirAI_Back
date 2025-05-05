@@ -5,11 +5,9 @@ import com.example.articlesite.service.BaserowService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.IOException;
-
 @RestController
 @RequestMapping("/api/articles")
-@CrossOrigin(origins = "*") // Добавляем CORS поддержку
+@CrossOrigin(origins = {"https://mirai-tech.ru", "https://zen.yandex.ru"})
 public class ArticleController {
     private final BaserowService baserowService;
 
@@ -27,7 +25,7 @@ public class ArticleController {
         try {
             ArticleDto article = baserowService.getArticleById(id);
             return ResponseEntity.ok(article);
-        } catch (IOException e) {
+        } catch (Exception e) {
             return ResponseEntity.notFound().build();
         }
     }

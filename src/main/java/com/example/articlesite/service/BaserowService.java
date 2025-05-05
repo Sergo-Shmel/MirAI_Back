@@ -80,6 +80,7 @@ public class BaserowService {
 
                 article.setId(jsonObject.getLong("id"));
                 article.setContent(jsonObject.getString("content"));
+                article.setTitle(jsonObject.optString("title", "No Title")); // Добавьте эту строку
                 article.setImageUrl(jsonObject.getString("image_url"));
 
                 String dateStr = jsonObject.getString("date_created");
